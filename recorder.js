@@ -2,7 +2,7 @@
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
-var Recorder = function( config ){
+Recorder = function( config ){
 
   if ( !Recorder.isRecordingSupported() ) {
     throw "Recording is not supported in this browser";
@@ -16,6 +16,8 @@ var Recorder = function( config ){
   this.config.originalSampleRate = this.audioContext.sampleRate;
   this.config.encoderSampleRate = config.encoderSampleRate || 48000;
   this.config.encoderPath = config.encoderPath || 'oggopusEncoder.js';
+  this.config.workerPath = config.workerPath || 'recorderWorker.js';
+  this.config.mp3EncoderPath = config.mp3EncoderPath || 'lame.all.js';
   this.config.stream = config.stream || false;
   this.config.leaveStreamOpen = config.leaveStreamOpen || false;
   this.config.maxBuffersPerPage = config.maxBuffersPerPage || 40;
@@ -85,7 +87,9 @@ Recorder.prototype.encodeBuffers = function( inputBuffer ){
       buffers[i] = inputBuffer.getChannelData(i);
     }
 
-    this.encoder.postMessage({ command: "encode", buffers: buffers });
+    // this.encoder.postMessage({ command: "encode", buffers: buffers });
+    this.mp3Encoder.postMessage({ command: "encode", buffers: buffers });
+
     this.duration += inputBuffer.duration;
     this.eventTarget.dispatchEvent( new CustomEvent( 'duration', { detail: this.duration } ) );
   }
@@ -136,6 +140,13 @@ Recorder.prototype.onPageEncoded = function( page ) {
   }
 };
 
+Recorder.prototype.processMP3 = function (data) {
+  // console.log('process', data);
+  this.eventTarget.dispatchEvent( new CustomEvent( 'mp3DataAvailable', {
+    detail: data
+  }));
+};
+
 Recorder.prototype.pause = function(){
   if ( this.state === "recording" ){
     this.state = "paused";
@@ -165,9 +176,14 @@ Recorder.prototype.start = function(){
     this.duration = 0;
 
     var that = this;
-    this.encoder = new Worker( this.config.encoderPath );
-    this.encoder.addEventListener( "message", function( e ) {
-      that.onPageEncoded( e.data );
+    // this.encoder = new Worker( this.config.encoderPath );
+    // this.encoder.addEventListener( "message", function( e ) {
+      // that.onPageEncoded( e.data );
+    // });
+
+    this.mp3Encoder = new Worker(this.config.workerPath);
+    this.mp3Encoder.addEventListener("message", function(e) {
+      that.processMP3(e.data);
     });
 
     // First buffer can contain old data. Don't encode it.
@@ -180,7 +196,9 @@ Recorder.prototype.start = function(){
     this.scriptProcessorNode.connect( this.audioContext.destination );
     this.eventTarget.dispatchEvent( new Event( 'start' ) );
     this.eventTarget.dispatchEvent( new CustomEvent( 'duration', { detail: this.duration } ) );
-    this.encoder.postMessage( this.config );
+    // this.encoder.postMessage( this.config );
+
+    this.mp3Encoder.postMessage( this.config );
   }
 };
 
@@ -192,7 +210,8 @@ Recorder.prototype.stop = function(){
 
     if ( !this.config.leaveStreamOpen ) { this.clearStream(); }
 
-    this.encoder.postMessage({ command: "done" });
+    // this.encoder.postMessage({ command: "done" });
+    this.mp3Encoder.postMessage({ command: "exportMP3" });
   }
 };
 
