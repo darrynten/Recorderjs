@@ -1,15 +1,20 @@
  "use strict";
 
- var Resampler = function( config ){
+var Resampler = function( config ){
+  console.log('resampler', config);
   this.originalSampleRate = config.originalSampleRate;
+  // this.originalSampleRate = config.resampledRate;
   this.numberOfChannels = config.numberOfChannels;
   this.resampledRate = config.resampledRate;
+  // this.resampledRate = config.originalSampleRate;
   this.lastSampleCache = [];
 
-  for ( var i = 0; i < this.numberOfChannels; i++ ){
-    this.lastSampleCache[i] = [0,0];
-  }
+  // for ( var i = 0; i < this.numberOfChannels; i++ ){
+    this.lastSampleCache[0] = [0,0];
+  // }
 
+  console.log(this.lastSampleCache);
+  
   if ( this.resampledRate === this.originalSampleRate ) {
     this.resample = function( buffer ) { return buffer; };
   }
@@ -27,6 +32,8 @@ Resampler.prototype.magicKernel = function( x ) {
 };
 
 Resampler.prototype.resample = function( buffer, channel ) {
+  console.log('resample', buffer, channel);
+  console.log('resample', this.resampledRate, this.originalSampleRate);
   var resampledBufferLength = Math.round( buffer.length * this.resampledRate / this.originalSampleRate );
   var resampleRatio = buffer.length / resampledBufferLength;
   var outputData = new Float32Array( resampledBufferLength );
@@ -43,6 +50,6 @@ Resampler.prototype.resample = function( buffer, channel ) {
 
   this.lastSampleCache[ channel ][ 0 ] = buffer[ buffer.length - 2 ];
   this.lastSampleCache[ channel ][ 1 ] = outputData[ resampledBufferLength - 1 ] = buffer[ buffer.length - 1 ];
-
+console.log('rs out', outputData);
   return outputData;
 };

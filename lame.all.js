@@ -14235,6 +14235,7 @@ function Lame() {
      *
      ********************************************************************/
     this.lame_init_params = function (gfp) {
+      console.log(gfp);
         var gfc = gfp.internal_flags;
 
         gfc.Class_ID = 0;
@@ -15420,8 +15421,9 @@ function Mp3Encoder(channels, samplerate, kbps) {
 
     gfp.num_channels = channels;
     gfp.in_samplerate = samplerate;
+    gfp.out_samplerate = samplerate;
     gfp.brate = kbps;
-    gfp.mode = MPEGMode.STEREO;
+    gfp.mode = MPEGMode.MONO;
     gfp.quality = 3;
     gfp.bWriteVbrTag = false;
     gfp.disable_reservoir = true;
