@@ -129,7 +129,7 @@ Recorder.prototype.processMP3Data = function (data) {
     this.recordedMP3Chunks.push(data.data);
   } else {
     this.recordedMP3Chunks.push(data.data);
-    var mp3Blob = new Blob(this.recordedMP3Chunks, { type: 'audio/mp3' });
+    var mp3Blob = new Blob(this.recordedMP3Chunks, { type: 'audio/mp3', endings: 'native' });
 
     this.eventTarget.dispatchEvent(new CustomEvent('dataAvailable', {
       detail: mp3Blob
